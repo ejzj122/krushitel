@@ -1,0 +1,14 @@
+# Бинарники и сборочные артефакты
+*.exe
+*.dll
+
+# Рантайм программы (результаты прогонов, настройки, логи)
+config.json
+log.txt
+results.txt
+done.txt
+nostun.txt
+krushitel_session.json
+*_titles.log
+snapshots/
+xml/
