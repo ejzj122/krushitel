@@ -3,16 +3,19 @@
 <h1>krushitel</h1>
 
 <p>
+  <img src="https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white" alt="Go 1.26.5" />
+</p>
+
+<p>
   <a href="./README_en.md">English</a> | <a href="./README.md">Русский</a>
 </p>
-<p>
-  ![Go Version](https://img.shields.io/badge/Go-1.26.5-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-</p>
+
 </div>
 
 <div align="center">
 <h2>Vulnerability scanner for Dahua cameras by serial number.</h2>
 </div>
+
 <div align="center">
 <img width="852" height="685" alt="изображение" src="https://github.com/user-attachments/assets/f727542a-e0fb-4714-a2f1-0916e030b5e4" />
 </div>
