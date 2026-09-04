@@ -5,7 +5,9 @@
 <p>
   <a href="./README_en.md">English</a> | <a href="./README.md">Русский</a>
 </p>
-
+<p>
+  ![Go Version](https://img.shields.io/badge/Go-1.26.5-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+</p>
 </div>
 
 <div align="center">
