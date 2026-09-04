@@ -3,19 +3,19 @@
 <h1>krushitel</h1>
 
 <p>
+  <img src="https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white" alt="Go 1.26.5" />
+</p>
+
+<p>
   <a href="./README_en.md">English</a> | <a href="./README.md">Русский</a>
 </p>
-<p>
-  ![Go Version](https://img.shields.io/badge/Go-1.26.5-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-</p>
+
 </div>
 
 <div align="center">
-<h2>Сканер уязвимостей для камер Dahua, по серийному номеру. </h2>
+<h2>Сканер уязвимостей Dahua по серийному номеру</h2>
 </div>
-<div align="center">
-<img width="827" height="677" alt="изображение" src="https://github.com/user-attachments/assets/54d818a1-ffac-4920-8b74-f9bd4b99b42b" />
-</div>
+
 
 > [!WARNING]
 > Этот софт предназначен только для исследовательских, лабораторных и учебных целей. Автор данного инструмента не несёт ответственности за ваше использование данным софтом.
