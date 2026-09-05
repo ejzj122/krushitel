@@ -75,7 +75,7 @@ func main() {
 		brandCyanRGB = [3]int{r, g, b}
 	}
 
-		p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf(tr("ошибка: %v")+"\n", err)
 		os.Exit(1)
@@ -572,6 +572,13 @@ func (m model) View() string {
 		content, help = m.form.view(), m.form.helpLine()
 	case stXMLMenu:
 		content, help = m.xmlMenuView(), tr("↑↓ навигация  ·  enter / цифра — выбор  ·  esc — назад  ·  q — выход")
+	case stRun:
+		content = m.run.view()
+		// плашка навигации — всегда (после финиша — своя)
+		help = tr("esc/b — стоп и в меню  ·  q — выход")
+		if m.run.finished() {
+			help = tr("esc/b — в меню  ·  q — выход")
+		}
 	case stMsg:
 		content = m.msgView()
 	case stSettings:
@@ -813,7 +820,7 @@ func showMsg(m *model, panel string, lines ...string) {
 
 // ensureDir — MkdirAll с сообщением об ошибке.
 func ensureDir(path string) string {
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err.Error()
 	}
 	return ""
