@@ -80,7 +80,7 @@ func (r *runState) openLog(path string) {
 	if path == "" {
 		return
 	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return
 	}
@@ -106,30 +106,6 @@ func (r *runState) closeLog() {
 		r.logFile.Close()
 		r.logFile = nil
 	}
-}
-
-// stripANSI — срезает ANSI-коды раскраски: в файле логов цвет не нужен.
-func stripANSI(s string) string {
-	if !strings.Contains(s, "\x1b[") {
-		return s
-	}
-	var sb strings.Builder
-	for i := 0; i < len(s); {
-		if s[i] == 0x1b && i+1 < len(s) && s[i+1] == '[' {
-			j := i + 2
-			for j < len(s) && !((s[j] >= 'a' && s[j] <= 'z') || (s[j] >= 'A' && s[j] <= 'Z')) {
-				j++
-			}
-			if j < len(s) {
-				j++
-			}
-			i = j
-			continue
-		}
-		sb.WriteByte(s[i])
-		i++
-	}
-	return sb.String()
 }
 
 // logMax — сколько строк ленты влезает: высота минус баннер/панель/
@@ -301,7 +277,8 @@ func (r *runState) eventsBlock() string {
 			// прогресс дошёл до 100%, но снапы/титры ещё качаются —
 			// esc сейчас прервёт их
 			sb.WriteString(centerLine(yellow(fmt.Sprintf(
-				tr("[i] снапы/титры в полёте: %d — esc прервёт их"), inflight))) + "\n")
+				tr("[i] снапы/титры в полёте: %d — esc прервёт их"), inflight,
+			))) + "\n")
 			return sb.String()
 		}
 	}
