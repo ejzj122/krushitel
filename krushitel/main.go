@@ -10,14 +10,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
 	"krushitel/exploit"
 	"krushitel/i18n"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // tr — обёртка локализации: ru = ключ как есть, en = перевод из словаря.
 func tr(s string) string { return i18n.Tr(s) }
+
+const appVersion = "1"
 
 type sessionState int
 
@@ -55,9 +58,23 @@ type model struct {
 
 	dummyInput textinput.Model
 	dummyErr   string
+
+	splashActive  bool
+	splashStart   time.Time
+	pendingNotice bool
+
+	introActive    bool
+	introStart     time.Time
+	introFrame     int
+	introExiting   bool
+	introExitStart time.Time
 }
 
 func main() {
+	if r, g, b, ok := queryPaletteColor(6); ok {
+		brandCyanRGB = [3]int{r, g, b}
+	}
+
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf(tr("ошибка: %v")+"\n", err)
@@ -76,9 +93,13 @@ func initialModel() model {
 	di.CharLimit = 65 // логин 32 + ':' + пароль 32
 	di.Width = 50
 	m := model{state: stMenu, titleInput: ti, dummyInput: di}
+	m.splashActive = true
 	if cfg.IsActivated {
 		// уже активированы — сразу в меню на сохранённом языке
 		i18n.SetLang(cfg.Lang)
+		if !readState() {
+			m.pendingNotice = true
+		}
 	} else {
 		// первый запуск — приветствие с выбором языка
 		m.state = stGreet
@@ -87,6 +108,7 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
+	introText()
 	return tickCmd()
 }
 
@@ -97,8 +119,34 @@ func tickCmd() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		firstSize := m.w == 0 && m.h == 0
 		m.w, m.h = msg.Width, msg.Height
 		termWidth = msg.Width
+		if firstSize && m.splashActive && m.splashStart.IsZero() {
+			m.splashStart = time.Now()
+			return m, introTickCmd()
+		}
+		return m, nil
+
+	case introTickMsg:
+		if m.splashActive {
+			if time.Since(m.splashStart) >= splashDuration(m.w, m.h) {
+				return m.updateSplash()
+			}
+			return m, introTickCmd()
+		}
+		if m.introActive {
+			if m.introExiting {
+				if time.Since(m.introExitStart) >= introFadeOut {
+					m.introActive = false
+					writeState()
+					return m, nil
+				}
+			} else {
+				m.introFrame++
+			}
+			return m, introTickCmd()
+		}
 		return m, nil
 
 	case tickMsg:
@@ -113,6 +161,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Type == tea.KeyCtrlC {
 			m.quitting = true
 			return m, tea.Quit
+		}
+
+		if m.splashActive {
+			return m.updateSplash()
+		}
+
+		if m.introActive {
+			return m.updateIntro(msg)
 		}
 
 		switch m.state {
@@ -178,6 +234,11 @@ func (m model) selectGreet(idx int) (tea.Model, tea.Cmd) {
 	cfg.IsActivated = true
 	saveSettings()
 	m.state = stMenu
+	if !readState() {
+		m.introActive = true
+		m.introStart = time.Now()
+		return m, introTickCmd()
+	}
 	return m, nil
 }
 
@@ -384,14 +445,14 @@ const (
 	rowSnaps = iota
 	rowXML
 	rowTitles
-	rowEditChan  // ChannelTitle (имя канала), огр 32 симв.
-	rowEditCT0   // OSD слот 1 (CustomTitle[0]), огр 22 симв.
-	rowEditCT1   // OSD слот 2
-	rowEditCT2   // OSD слот 3
-	rowEditCT3   // OSD слот 4
-	rowDummy     // dummy-креды: ввод login:passwd одной строкой
-	rowDebug     // лог-режим: дампы протокола облака в ленту логов
-	rowLang        // язык: «язык: русский» / «language: english»
+	rowEditChan // ChannelTitle (имя канала), огр 32 симв.
+	rowEditCT0  // OSD слот 1 (CustomTitle[0]), огр 22 симв.
+	rowEditCT1  // OSD слот 2
+	rowEditCT2  // OSD слот 3
+	rowEditCT3  // OSD слот 4
+	rowDummy    // dummy-креды: ввод login:passwd одной строкой
+	rowDebug    // лог-режим: дампы протокола облака в ленту логов
+	rowLang     // язык: «язык: русский» / «language: english»
 	rowBack
 )
 
@@ -404,7 +465,8 @@ func (m model) settingsRows() []settingsRow {
 		{fmt.Sprintf(tr("автозамена титров (%s)"), onOff(cfg.Titles)), rowTitles},
 	}
 	if cfg.Titles {
-		rows = append(rows,
+		rows = append(
+			rows,
 			settingsRow{fmt.Sprintf(tr("   └ канал (ChannelTitle): %s"), quoteVal(cfg.ChannelText)), rowEditChan},
 			settingsRow{fmt.Sprintf(tr("   └ OSD слот %d: %s"), 1, quoteVal(cfg.CustomTexts[0])), rowEditCT0},
 			settingsRow{fmt.Sprintf(tr("   └ OSD слот %d: %s"), 2, quoteVal(cfg.CustomTexts[1])), rowEditCT1},
@@ -418,7 +480,8 @@ func (m model) settingsRows() []settingsRow {
 	if cfg.Lang == "en" {
 		langLabel = "language: english"
 	}
-	rows = append(rows,
+	rows = append(
+		rows,
 		settingsRow{tr("добавить нового юзера"), rowDummy},
 		settingsRow{fmt.Sprintf(tr("лог-режим (%s)"), onOff(cfg.Debug)), rowDebug},
 		settingsRow{langLabel, rowLang},
@@ -507,6 +570,8 @@ func (m model) View() string {
 		content, help = m.menuView(), tr("↑↓ навигация  ·  enter / цифра — выбор  ·  q — выход")
 	case stForm:
 		content, help = m.form.view(), m.form.helpLine()
+	case stXMLMenu:
+		content, help = m.xmlMenuView(), tr("↑↓ навигация  ·  enter / цифра — выбор  ·  esc — назад  ·  q — выход")
 	case stRun:
 		content = m.run.view()
 		// плашка навигации — всегда (после финиша — своя)
@@ -514,8 +579,6 @@ func (m model) View() string {
 		if m.run.finished() {
 			help = tr("esc/b — в меню  ·  q — выход")
 		}
-	case stXMLMenu:
-		content, help = m.xmlMenuView(), tr("↑↓ навигация  ·  enter / цифра — выбор  ·  esc — назад  ·  q — выход")
 	case stMsg:
 		content = m.msgView()
 	case stSettings:
@@ -524,6 +587,11 @@ func (m model) View() string {
 		content, help = m.titleEditView(), tr("enter — сохранить  ·  esc — назад  ·  ctrl+c — выход")
 	case stDummyEdit:
 		content, help = m.dummyEditView(), tr("enter — сохранить  ·  esc — назад  ·  ctrl+c — выход")
+	}
+	if m.splashActive {
+		content, help = m.renderSplash(content)
+	} else if m.introActive {
+		content, help = m.overlayIntro(content)
 	}
 	return withBottom(content, help, m.h)
 }
@@ -752,7 +820,7 @@ func showMsg(m *model, panel string, lines ...string) {
 
 // ensureDir — MkdirAll с сообщением об ошибке.
 func ensureDir(path string) string {
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err.Error()
 	}
 	return ""

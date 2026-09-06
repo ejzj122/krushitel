@@ -170,6 +170,9 @@ var en = map[string]string{
 	"Ошибка открытия выходного файла: ":                                   "output file open error: ",
 	"Ошибка резолва сервера: ":                                            "server resolve error: ",
 	"не смог создать необходимое кол-во сокетов (фикс: ulimit -n 100000)": "couldn't create enough UDP sockets (to fix: ulimit -n 100000)",
+
+	"подождите %d сек…":   "wait %d sec…",
+	"enter / пробел — ок": "enter / space — ok",
 }
 
 // Tr — перевод строки по словарю; при ru (или отсутствии ключа) — как есть.

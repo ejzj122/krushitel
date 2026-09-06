@@ -30,6 +30,16 @@ func init() {
 	}
 }
 
+var brandCyanRGB = [3]int{0, 205, 205}
+
+func brandCyanHex() string {
+	return fmt.Sprintf("#%02x%02x%02x", brandCyanRGB[0], brandCyanRGB[1], brandCyanRGB[2])
+}
+
+func brandCyan() lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color(brandCyanHex()))
+}
+
 var (
 	styleCyan   = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	styleDim    = lipgloss.NewStyle().Faint(true)
@@ -52,20 +62,20 @@ const margin = "    "
 // 0 = неизвестна (не TTY / до первого resize) — тогда отступ по умолчанию.
 var termWidth int
 
-// bannerBlock — арта + инфо-блок. Центрируется САМ (блоком: один отступ
-// на все строки арта — иначе ёлка разваливается), остальные строки экрана
-// центрируются centerLine'ом по отдельности.
-func bannerBlock() string {
-	art := strings.Split(strings.TrimRight(bannerArt, "\n"), "\n")
+func bannerArtLines() []string {
+	return strings.Split(strings.TrimRight(bannerArt, "\n"), "\n")
+}
+
+func bannerLayout() (lines []string, leftPad int) {
+	art := bannerArtLines()
 	info := []string{
 		"",
-		styleCyan.Bold(true).Render("крушитель v1"),
+		brandCyan().Bold(true).Render("крушитель v" + appVersion),
 		styleDim.Render("exploit-based dahua sn scanner"),
 		styleDim.Render("t.me/kkrushitel"),
 	}
 	const artWidth = 22
 
-	var lines []string
 	widths := make([]int, 0, len(art))
 	for i, ln := range art {
 		runes := []rune(ln)
@@ -73,7 +83,7 @@ func bannerBlock() string {
 		if pad < 0 {
 			pad = 0
 		}
-		line := styleCyan.Render(ln) + strings.Repeat(" ", pad)
+		line := brandCyan().Render(ln) + strings.Repeat(" ", pad)
 		if i < len(info) && info[i] != "" {
 			line += "   " + info[i]
 		}
@@ -87,14 +97,21 @@ func bannerBlock() string {
 			maxW = w
 		}
 	}
-	leftPad := len(margin)
+	leftPad = len(margin)
 	if termWidth > 0 {
 		leftPad = (termWidth - maxW) / 2
 		if leftPad < 0 {
 			leftPad = 0
 		}
 	}
+	return lines, leftPad
+}
 
+// bannerBlock — арта + инфо-блок. Центрируется САМ (блоком: один отступ
+// на все строки арта — иначе ёлка разваливается), остальные строки экрана
+// центрируются centerLine'ом по отдельности.
+func bannerBlock() string {
+	lines, leftPad := bannerLayout()
 	var sb strings.Builder
 	sb.WriteString("\n")
 	padStr := strings.Repeat(" ", leftPad)
@@ -106,6 +123,7 @@ func bannerBlock() string {
 
 // centerLine — центрирование ОДНОЙ строки по ширине терминала.
 func centerLine(s string) string {
+	checkLayout()
 	if termWidth <= 0 {
 		return margin + s
 	}
