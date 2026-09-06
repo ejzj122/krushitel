@@ -30,7 +30,7 @@ jobs:
             exit 1
           fi
           git fetch --tags --force
-          LAST=$(git tag -l "v${BASE}.*" | sed -E "s/^v${BASE}\.//" | sort -n | tail -1 || true)
+          LAST=$(git tag -l "v${BASE}.[0-9]*" | sed -E "s/^v${BASE}\.//" | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
           if [ -z "$LAST" ]; then
             NEXT=1
           else
@@ -88,7 +88,7 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          GOARM: ${{ matrix.goarm }}
+          GOARM: ${{ matrix.goarm || '' }}
           CGO_ENABLED: "0"
         run: |
           set -euo pipefail
