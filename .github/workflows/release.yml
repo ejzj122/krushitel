@@ -69,12 +69,6 @@ jobs:
           - goos: darwin
             goarch: arm64
             label: darwin-arm64
-          - goos: freebsd
-            goarch: amd64
-            label: freebsd-amd64
-          - goos: freebsd
-            goarch: arm64
-            label: freebsd-arm64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
